@@ -1,5 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 use iced::{Element, Sandbox, Settings, Text};
+use time::OffsetDateTime;
 
 pub fn main() -> iced::Result {
     TimeManager::run(Settings::default())
@@ -44,9 +45,9 @@ impl TagGroup {
         }
     }
 
-    fn start_time(&mut self) {
+    fn start_time_segment(&mut self) {
         if self.is_active_segment == false {
-            let new_segment = TimeSegment;
+            let new_segment = TimeSegment::new();
             self.time_segments.push(new_segment);
             self.is_active_segment = true;
         } else {
@@ -54,24 +55,51 @@ impl TagGroup {
         }
     }
 
-    fn end_time(&mut self) {
+    fn end_time_segment(&mut self) {
+        self.is_active_segment = false;
+        self.time_segments.last().unwrap().record_end_time();
     }
 
     fn calculate_total(&mut self) {
     }
 }
 
-#[derive(PartialEq)]
-struct TimeSegment;
+struct TimeSegment {
+    start_time: OffsetDateTime,
+    end_time: Option<OffsetDateTime>,
+    hours_total: f64,
+}
+
+impl TimeSegment {
+    fn new() -> TimeSegment {
+        TimeSegment {
+            start_time: OffsetDateTime::now_local().unwrap(),
+            end_time: None,
+            hours_total: 0f64,
+        }
+    }
+
+    fn record_end_time(&mut self) {
+        self.end_time = OffsetDateTime::now_local().ok();
+        self.calculate_total_hours();
+    }
+
+    fn calculate_total_hours(&mut self) {
+        let time_duration = self.end_time.unwrap() - self.start_time;
+        self.hours_total = time_duration.as_seconds_f64() / 3600f64;
+    }
+}
 
 #[cfg(test)]
 mod tests {
+    use std::thread::sleep;
+    use std::time::Duration;
     use super::*;
 
     #[test]
     fn test_start_segment() {
         let mut test_tag = TagGroup::new("test");
-        test_tag.start_time();
+        test_tag.start_time_segment();
 
         assert_eq!(test_tag.time_segments.len(), 1)
     }
@@ -79,9 +107,19 @@ mod tests {
     #[test]
     fn test_end_segment() {
         let mut test_tag = TagGroup::new("test");
-        test_tag.start_time();
-        test_tag.end_time();
+        test_tag.start_time_segment();
+        test_tag.end_time_segment();
 
         assert_eq!(test_tag.is_active_segment, false);
+    }
+
+    #[test]
+    fn test_calculate_total_hours() {
+        let mut test_tag = TagGroup::new("test");
+        test_tag.start_time_segment();
+        sleep(Duration::from_secs(5));
+        test_tag.end_time_segment();
+
+        assert_eq!(test_tag.time_segments.last().unwrap().hours_total, 0.001388888888888889);
     }
 }
