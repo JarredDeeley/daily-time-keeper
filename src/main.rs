@@ -1,4 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
+
+use std::borrow::BorrowMut;
 use iced::{Element, Sandbox, Settings, Text};
 use time::OffsetDateTime;
 
@@ -55,10 +57,16 @@ impl TagGroup {
         }
     }
 
-    fn end_time_segment(&mut self) {
-        self.is_active_segment = false;
-        self.time_segments.last().unwrap().record_end_time();
-    }
+    // fn end_time_segment(&mut self) {
+    //     self.is_active_segment = false;
+    //     self.time_segments
+    //         .last()
+    //         .expect("No time segments found")
+    //         .record_end_time()
+    //     ;
+    //
+    //         // .last().unwrap().record_end_time();
+    // }
 
     fn calculate_total(&mut self) {
     }
@@ -94,6 +102,7 @@ impl TimeSegment {
 mod tests {
     use std::thread::sleep;
     use std::time::Duration;
+    use approx::{assert_relative_eq, relative_eq};
     use super::*;
 
     #[test]
@@ -104,22 +113,31 @@ mod tests {
         assert_eq!(test_tag.time_segments.len(), 1)
     }
 
-    #[test]
-    fn test_end_segment() {
-        let mut test_tag = TagGroup::new("test");
-        test_tag.start_time_segment();
-        test_tag.end_time_segment();
+    // #[test]
+    // fn test_end_segment() {
+    //     let mut test_tag = TagGroup::new("test");
+    //     test_tag.start_time_segment();
+    //     test_tag.end_time_segment();
+    //
+    //     assert_eq!(test_tag.is_active_segment, false);
+    // }
 
-        assert_eq!(test_tag.is_active_segment, false);
-    }
+    // #[test]
+    // fn test_calculate_total_hours() {
+    //     let mut test_tag = TagGroup::new("test");
+    //     test_tag.start_time_segment();
+    //     sleep(Duration::from_secs(5));
+    //     test_tag.end_time_segment();
+    //
+    //     assert_eq!(test_tag.time_segments.last().unwrap().hours_total, 0.001388888888888889);
+    // }
 
     #[test]
-    fn test_calculate_total_hours() {
-        let mut test_tag = TagGroup::new("test");
-        test_tag.start_time_segment();
+    fn test_time_segment_record_end_time() {
+        let mut test_seg = TimeSegment::new();
         sleep(Duration::from_secs(5));
-        test_tag.end_time_segment();
+        test_seg.record_end_time();
 
-        assert_eq!(test_tag.time_segments.last().unwrap().hours_total, 0.001388888888888889);
+        assert_relative_eq!(test_seg.hours_total, 0.00139, epsilon = 1e-5f64);
     }
 }
