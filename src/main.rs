@@ -1,43 +1,84 @@
 #![warn(clippy::all, clippy::pedantic)]
-use iced::{Element, Sandbox, Settings, Text};
+use iced::{Column, Element, Sandbox, Settings, Text, button, Button};
 use time::OffsetDateTime;
 
 pub fn main() -> iced::Result {
     TimeManager::run(Settings::default())
 }
 
-struct TimeManager;
+struct TimeManager {
+    tags: Tag,
+    time_control: button::State,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Message {
+    TimeControlPressed,
+}
 
 impl Sandbox for TimeManager {
-    type Message = ();
+    type Message = Message;
 
     fn new() -> TimeManager {
-        TimeManager
+        TimeManager {
+            tags: Tag::new("test"),
+            time_control: Default::default(),
+        }
     }
 
     fn title(&self) -> String {
         String::from("Daily Time Keeper")
     }
 
-    fn update(&mut self, _message: Self::Message) {
-        // This application has no interactions
+    fn update(&mut self, message: Self::Message) {
+        match message {
+            Message::TimeControlPressed => {
+                if self.tags.is_active_segment {
+                    self.tags.end_time_segment();
+                    self.tags.calculate_total();
+                } else {
+                    self.tags.start_time_segment();
+                }
+            }
+        }
     }
 
     fn view(&mut self) -> Element<Self::Message> {
-        Text::new("Hello, world!").into()
+        Column::new()
+            .push(
+                Button::new(&mut self.time_control, Text::new("Start / Stop"))
+                    .on_press(Message::TimeControlPressed),
+            )
+            .push(Text::new(&self.tags.name))
+            .push(Text::new(&self.tags.total_time.to_string()))
+            .into()
     }
 }
 
-struct TagGroup {
+// struct TagView {
+//     timer_control_button: button::state,
+//     tag: &Tag,
+// }
+//
+// impl TagView {
+//     fn new(tag: &Tag) -> Self {
+//         TagView {
+//             timer_control_button: (),
+//             tag,
+//         }
+//     }
+// }
+
+struct Tag {
     name: String,
     time_segments: Vec<TimeSegment>,
     is_active_segment: bool,
     total_time: f64,
 }
 
-impl TagGroup {
-    fn new(name: &str) -> TagGroup {
-        let mut _self = TagGroup {
+impl Tag {
+    fn new(name: &str) -> Tag {
+        let mut _self = Tag {
             name: String::from(name),
             time_segments: Vec::new(),
             is_active_segment: false,
@@ -112,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_start_segment() {
-        let mut test_tag = TagGroup::new("test");
+        let mut test_tag = Tag::new("test");
         test_tag.start_time_segment();
 
         assert_eq!(test_tag.time_segments.len(), 1)
@@ -120,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_end_segment() {
-        let mut test_tag = TagGroup::new("test");
+        let mut test_tag = Tag::new("test");
         test_tag.start_time_segment();
         test_tag.end_time_segment();
 
@@ -129,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_calculate_total_hours() {
-        let mut test_tag = TagGroup::new("test");
+        let mut test_tag = Tag::new("test");
         test_tag.start_time_segment();
         sleep(Duration::from_secs(5));
         test_tag.end_time_segment();
