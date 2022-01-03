@@ -37,12 +37,14 @@ struct TagGroup {
 
 impl TagGroup {
     fn new(name: &str) -> TagGroup {
-        TagGroup {
+        let mut _self = TagGroup {
             name: String::from(name),
             time_segments: Vec::new(),
             is_active_segment: false,
             total_time: 0f64,
-        }
+        };
+
+        _self
     }
 
     fn start_time_segment(&mut self) {
@@ -57,10 +59,20 @@ impl TagGroup {
 
     fn end_time_segment(&mut self) {
         self.is_active_segment = false;
-        self.time_segments.last().unwrap().record_end_time();
+        self.time_segments
+            .last_mut()
+            .unwrap()
+            .record_end_time();
     }
 
     fn calculate_total(&mut self) {
+        let mut running_time = 0f64;
+
+        for time_segment in self.time_segments.iter() {
+            running_time += time_segment.hours_total;
+        }
+
+        self.total_time = running_time;
     }
 }
 
@@ -72,11 +84,13 @@ struct TimeSegment {
 
 impl TimeSegment {
     fn new() -> TimeSegment {
-        TimeSegment {
+        let mut _self = TimeSegment {
             start_time: OffsetDateTime::now_local().unwrap(),
             end_time: None,
             hours_total: 0f64,
-        }
+        };
+
+        _self
     }
 
     fn record_end_time(&mut self) {
