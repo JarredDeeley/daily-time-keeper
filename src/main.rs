@@ -1,73 +1,87 @@
 #![warn(clippy::all, clippy::pedantic)]
-use iced::{Column, Element, Sandbox, Settings, Text, button, Button};
+
+use std::iter::FromIterator;
+use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button};
+use eframe::epi::{App, Frame};
+use eframe::{NativeOptions, run_native};
 use time::OffsetDateTime;
 
-pub fn main() -> iced::Result {
-    TimeManager::run(Settings::default())
+pub fn main() {
+    let app = TimeManager::new();
+    let window_options = NativeOptions::default();
+    run_native(Box::new(app), window_options);
 }
 
 struct TimeManager {
-    tags: Tag,
-    time_control: button::State,
+    tags: Vec<Tag>,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Message {
-    TimeControlPressed,
-}
-
-impl Sandbox for TimeManager {
-    type Message = Message;
-
+impl TimeManager {
     fn new() -> TimeManager {
+        let dummy_iter = (0..3).map(|dummy|
+            Tag::new(format!("Tag:{}", dummy))
+        );
+
         TimeManager {
-            tags: Tag::new("test"),
-            time_control: Default::default(),
+            tags: Vec::from_iter(dummy_iter)
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Daily Time Keeper")
-    }
-
-    fn update(&mut self, message: Self::Message) {
-        match message {
-            Message::TimeControlPressed => {
-                if self.tags.is_active_segment {
-                    self.tags.end_time_segment();
-                    self.tags.calculate_total();
-                } else {
-                    self.tags.start_time_segment();
-                }
-            }
-        }
-    }
-
-    fn view(&mut self) -> Element<Self::Message> {
-        Column::new()
-            .push(
-                Button::new(&mut self.time_control, Text::new("Start / Stop"))
-                    .on_press(Message::TimeControlPressed),
-            )
-            .push(Text::new(&self.tags.name))
-            .push(Text::new(&self.tags.total_time.to_string()))
-            .into()
     }
 }
 
-// struct TagView {
-//     timer_control_button: button::state,
-//     tag: &Tag,
-// }
-//
-// impl TagView {
-//     fn new(tag: &Tag) -> Self {
-//         TagView {
-//             timer_control_button: (),
-//             tag,
-//         }
-//     }
-// }
+impl App for TimeManager {
+    fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
+        CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Time Tags");
+            ScrollArea::vertical().show(ui, |ui| {
+                for tag in self.tags.iter_mut() {
+                    ui.horizontal(|ui| {
+                        let button_text;
+                        if tag.is_active_segment {
+                            button_text = "Stop";
+                        } else {
+                            button_text = "Start";
+                        }
+
+                        if ui.add(Button::new(button_text)).clicked() {
+                            if tag.is_active_segment {
+                                tag.end_time_segment();
+                                tag.calculate_total();
+                            } else {
+                                tag.start_time_segment();
+                            }
+                        }
+                        ui.label(&tag.name);
+                        ui.label(format!("Total Hours: {}", &tag.total_time.to_string()));
+                    });
+
+                    ui.vertical(|ui| {
+                        for segment in tag.time_segments.iter_mut() {
+                            ui.horizontal(|ui| {
+                                ui.label(format_time_hms(segment.start_time));
+                                ui.label(" - ");
+                                if segment.end_time.is_some() {
+                                    ui.label(format_time_hms(segment.end_time.unwrap()));
+                                }
+                                ui.separator();
+                                ui.label(format!("Hours: {}", segment.hours_total))
+                            });
+                        }
+
+                        ui.separator();
+                    });
+                }
+            });
+        });
+    }
+
+    fn name(&self) -> &str {
+        "Daily Time Keeper"
+    }
+}
+
+fn format_time_hms(time_stamp: OffsetDateTime) -> String {
+    format!("{}:{}:{}", time_stamp.to_hms().0, time_stamp.to_hms().1, time_stamp.to_hms().2)
+}
 
 struct Tag {
     name: String,
@@ -77,9 +91,9 @@ struct Tag {
 }
 
 impl Tag {
-    fn new(name: &str) -> Tag {
+    fn new(name: String) -> Tag {
         let mut _self = Tag {
-            name: String::from(name),
+            name,
             time_segments: Vec::new(),
             is_active_segment: false,
             total_time: 0f64,
@@ -153,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_start_segment() {
-        let mut test_tag = Tag::new("test");
+        let mut test_tag = Tag::new("test".to_string());
         test_tag.start_time_segment();
 
         assert_eq!(test_tag.time_segments.len(), 1)
@@ -161,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_end_segment() {
-        let mut test_tag = Tag::new("test");
+        let mut test_tag = Tag::new("test".to_string());
         test_tag.start_time_segment();
         test_tag.end_time_segment();
 
@@ -170,7 +184,7 @@ mod tests {
 
     #[test]
     fn test_calculate_total_hours() {
-        let mut test_tag = Tag::new("test");
+        let mut test_tag = Tag::new("test".to_string());
         test_tag.start_time_segment();
         sleep(Duration::from_secs(5));
         test_tag.end_time_segment();
