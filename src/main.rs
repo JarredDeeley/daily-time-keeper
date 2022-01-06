@@ -91,7 +91,9 @@ impl App for TimeManager {
         TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.add(Button::new("Clear Session")).clicked() {
-                    self.tags.clear();
+                    for tag in self.tags.iter_mut() {
+                        tag.clear_session();
+                    }
                 }
                 ui.separator();
                 ui.label("End session & save");
@@ -126,6 +128,12 @@ impl Tag {
         };
 
         _self
+    }
+
+    fn clear_session(&mut self) {
+        self.time_segments.clear();
+        self.is_active_segment = false;
+        self.total_time = 0f64;
     }
 
     fn start_time_segment(&mut self) {
