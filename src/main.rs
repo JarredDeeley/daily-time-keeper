@@ -1,7 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::iter::FromIterator;
-use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button};
+use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
 use eframe::epi::{App, Frame};
 use eframe::{NativeOptions, run_native};
 use time::OffsetDateTime;
@@ -14,24 +13,39 @@ pub fn main() {
 
 struct TimeManager {
     tags: Vec<Tag>,
+    tag_name: String,
 }
 
 impl TimeManager {
     fn new() -> TimeManager {
-        let dummy_iter = (0..3).map(|dummy|
-            Tag::new(format!("Tag:{}", dummy))
-        );
-
         TimeManager {
-            tags: Vec::from_iter(dummy_iter)
+            tags: Vec::new(),
+            tag_name: "".to_owned(),
         }
     }
 }
 
 impl App for TimeManager {
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
+        TopBottomPanel::top("Panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                let new_tag_response = ui.add(TextEdit::singleline( &mut self.tag_name).hint_text("Enter Tag Name"));
+                if new_tag_response.lost_focus() && ui.input().key_pressed(Key::Enter) {
+                    if !self.tag_name.is_empty() {
+                        self.tags.push(Tag::new(self.tag_name.as_str()));
+                        self.tag_name = "".to_string();
+                    }
+                }
+                if ui.add(Button::new("Add New Tag")).clicked() {
+                    if !self.tag_name.is_empty() {
+                        self.tags.push(Tag::new(self.tag_name.as_str()));
+                        self.tag_name = "".to_string();
+                    }
+                }
+            });
+        });
+
         CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Time Tags");
             ScrollArea::vertical().show(ui, |ui| {
                 for tag in self.tags.iter_mut() {
                     ui.horizontal(|ui| {
@@ -57,19 +71,30 @@ impl App for TimeManager {
                     ui.vertical(|ui| {
                         for segment in tag.time_segments.iter_mut() {
                             ui.horizontal(|ui| {
+                                ui.add_space(40f32);
                                 ui.label(format_time_hms(segment.start_time));
                                 ui.label(" - ");
                                 if segment.end_time.is_some() {
                                     ui.label(format_time_hms(segment.end_time.unwrap()));
                                 }
                                 ui.separator();
-                                ui.label(format!("Hours: {}", segment.hours_total))
+                                ui.label(format!("Hours: {:.2}", segment.hours_total))
                             });
                         }
 
                         ui.separator();
                     });
                 }
+            });
+        });
+
+        TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.add(Button::new("Clear Session")).clicked() {
+                    self.tags.clear();
+                }
+                ui.separator();
+                ui.label("End session & save");
             });
         });
     }
@@ -91,7 +116,8 @@ struct Tag {
 }
 
 impl Tag {
-    fn new(name: String) -> Tag {
+    fn new(name: &str) -> Tag {
+        let name = name.to_string();
         let mut _self = Tag {
             name,
             time_segments: Vec::new(),
@@ -167,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_start_segment() {
-        let mut test_tag = Tag::new("test".to_string());
+        let mut test_tag = Tag::new("test");
         test_tag.start_time_segment();
 
         assert_eq!(test_tag.time_segments.len(), 1)
@@ -175,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_end_segment() {
-        let mut test_tag = Tag::new("test".to_string());
+        let mut test_tag = Tag::new("test");
         test_tag.start_time_segment();
         test_tag.end_time_segment();
 
@@ -184,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_calculate_total_hours() {
-        let mut test_tag = Tag::new("test".to_string());
+        let mut test_tag = Tag::new("test");
         test_tag.start_time_segment();
         sleep(Duration::from_secs(5));
         test_tag.end_time_segment();
