@@ -14,8 +14,6 @@ pub fn main() {
 struct TimeManager {
     tags: Vec<Tag>,
     tag_name: String,
-    tags_to_be_deleted: Vec<u16>,
-    segments_to_be_deleted: Vec<u16>,
 }
 
 impl TimeManager {
@@ -23,14 +21,14 @@ impl TimeManager {
         TimeManager {
             tags: Vec::new(),
             tag_name: "".to_owned(),
-            tags_to_be_deleted: Vec::new(),
-            segments_to_be_deleted: Vec::new(),
         }
     }
 }
 
 impl App for TimeManager {
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
+        let mut tags_to_be_deleted: Vec<u16> = Vec::new();
+
         TopBottomPanel::top("Panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let new_tag_response = ui.add(TextEdit::singleline( &mut self.tag_name).hint_text("Enter Tag Name"));
@@ -72,7 +70,7 @@ impl App for TimeManager {
                         ui.label(format!("Total Hours: {}", &tag.total_time.to_string()));
 
                         if ui.add(Button::new("Remove Tag")).clicked() {
-                            self.tags_to_be_deleted.push(tag_index as u16);
+                            tags_to_be_deleted.push(tag_index as u16);
                         }
                     });
 
@@ -94,8 +92,8 @@ impl App for TimeManager {
                     });
                 }
 
-                while let tag_index = self.tags_to_be_deleted.pop() {
-                    println!("Deleteing {:?}", tag_index);
+                for tag_index in tags_to_be_deleted.drain(..) {
+                    self.tags.remove(tag_index as usize);
                 }
             });
         });
