@@ -31,6 +31,7 @@ impl App for TimeManager {
 
         TopBottomPanel::top("Panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                // Adding new tag
                 let new_tag_response = ui.add(TextEdit::singleline( &mut self.tag_name).hint_text("Enter Tag Name"));
                 if new_tag_response.lost_focus() && ui.input().key_pressed(Key::Enter) {
                     if !self.tag_name.is_empty() {
@@ -44,6 +45,14 @@ impl App for TimeManager {
                         self.tag_name = "".to_string();
                     }
                 }
+
+                // Rounding feature
+                // 60 (seconds in minute) * rounding factor
+                // 60 * 0.25 = 15 minute interval
+                // if time_stamp > minute_interval / 2
+                ui.separator();
+                ui.label("[ 0.25 ]");
+                ui.label("Enable / Disable rounding");
             });
         });
 
