@@ -1,9 +1,10 @@
 #![warn(clippy::all, clippy::pedantic)]
 
+use std::cmp::min;
 use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
 use eframe::epi::{App, Frame};
 use eframe::{NativeOptions, run_native};
-use time::OffsetDateTime;
+use time::{OffsetDateTime, Time};
 
 pub fn main() {
     let app = TimeManager::new();
@@ -14,6 +15,8 @@ pub fn main() {
 struct TimeManager {
     tags: Vec<Tag>,
     tag_name: String,
+    minute_rounding_scale: f32,
+    is_rounding_on: bool,
 }
 
 impl TimeManager {
@@ -21,7 +24,29 @@ impl TimeManager {
         TimeManager {
             tags: Vec::new(),
             tag_name: "".to_owned(),
+            minute_rounding_scale: 0.25,
+            is_rounding_on: true,
         }
+    }
+
+    fn round_time(&self, time_to_be_rounded: (u8, u8)) -> (u8, u8) {
+        let minute_accuracy = (60.0 * self.minute_rounding_scale).floor();
+        let mut rounded_time = time_to_be_rounded;
+
+        let mut minutes = time_to_be_rounded.1;
+        minutes = ((minutes as f32 / minute_accuracy + 0.5).floor() * minute_accuracy) as u8;
+
+        if minutes >= 60 {
+            rounded_time.0 += 1;
+            if rounded_time.0 >= 23 {
+                rounded_time.0 = 0;
+            }
+            rounded_time.1 = minutes % 60;
+        } else {
+            rounded_time.1 = minutes;
+        }
+
+        rounded_time
     }
 }
 
@@ -47,12 +72,14 @@ impl App for TimeManager {
                 }
 
                 // Rounding feature
-                // 60 (seconds in minute) * rounding factor
-                // 60 * 0.25 = 15 minute interval
-                // if time_stamp > minute_interval / 2
                 ui.separator();
-                ui.label("[ 0.25 ]");
-                ui.label("Enable / Disable rounding");
+                ui.label(format!("Minute Rounding Scale: [ {} ]", self.minute_rounding_scale));
+                if self.is_rounding_on {
+                    ui.label("rounding enabled");
+                } else {
+                    ui.label("rounding disabled");
+                }
+
             });
         });
 
@@ -243,5 +270,26 @@ mod tests {
         test_tag.end_time_segment();
 
         assert_eq!(test_tag.time_segments.last().unwrap().hours_total, 0.001388888888888889);
+    }
+
+    #[test]
+    fn test_time_rounding() {
+        let time_manager = TimeManager::new();
+        let times = [
+            [Time::from_hms(6,25, 0), Time::from_hms(6,30, 0)],
+            [Time::from_hms(0,1, 0), Time::from_hms(0,0, 0)],
+            [Time::from_hms(0,7, 0), Time::from_hms(0,0, 0)],
+            [Time::from_hms(0,8, 0), Time::from_hms(0,15, 0)],
+            [Time::from_hms(0,14, 0), Time::from_hms(0,15, 0)],
+            [Time::from_hms(0,15, 0), Time::from_hms(0,15, 0)],
+            [Time::from_hms(0,16, 0), Time::from_hms(0,15, 0)],
+            [Time::from_hms(0,53, 0), Time::from_hms(1,0, 0)],
+            [Time::from_hms(0,59, 0), Time::from_hms(1,0, 0)]];
+
+        for time in times.iter() {
+            let unrounded_time = time[0].unwrap().as_hms();
+            let rounded_time = time_manager.round_time((unrounded_time.0, unrounded_time.1));
+            assert_eq!(Time::from_hms(rounded_time.0, rounded_time.1, 0), time[1]);
+        }
     }
 }
