@@ -6,6 +6,12 @@ use eframe::epi::{App, Frame};
 use eframe::{NativeOptions, run_native};
 use time::{OffsetDateTime, Time};
 
+mod tag;
+mod time_segment;
+
+use tag::*;
+use time_segment::*;
+
 pub fn main() {
     let app = TimeManager::new();
     let window_options = NativeOptions::default();
@@ -27,26 +33,6 @@ impl TimeManager {
             minute_rounding_scale: 0.25,
             is_rounding_on: true,
         }
-    }
-
-    fn round_time(&self, time_to_be_rounded: (u8, u8)) -> (u8, u8) {
-        let minute_accuracy = (60.0 * self.minute_rounding_scale).floor();
-        let mut rounded_time = time_to_be_rounded;
-
-        let mut minutes = time_to_be_rounded.1;
-        minutes = ((minutes as f32 / minute_accuracy + 0.5).floor() * minute_accuracy) as u8;
-
-        if minutes >= 60 {
-            rounded_time.0 += 1;
-            if rounded_time.0 >= 23 {
-                rounded_time.0 = 0;
-            }
-            rounded_time.1 = minutes % 60;
-        } else {
-            rounded_time.1 = minutes;
-        }
-
-        rounded_time
     }
 }
 
@@ -96,10 +82,10 @@ impl App for TimeManager {
 
                         if ui.add(Button::new(button_text)).clicked() {
                             if tag.is_active_segment {
-                                tag.end_time_segment();
+                                // tag.end_time_segment(self.is_rounding_on, self.minute_rounding_scale);
                                 tag.calculate_total();
                             } else {
-                                tag.start_time_segment();
+                                // tag.start_time_segment(self.is_rounding_on, self.minute_rounding_scale);
                             }
                         }
                         ui.label(&tag.name);
@@ -114,7 +100,7 @@ impl App for TimeManager {
                         for segment in tag.time_segments.iter_mut() {
                             ui.horizontal(|ui| {
                                 ui.add_space(40f32);
-                                ui.label(format_time_hms(segment.start_time));
+                                ui.label(format_time_hms(segment.start_time.unwrap()));
                                 ui.label(" - ");
                                 if segment.end_time.is_some() {
                                     ui.label(format_time_hms(segment.end_time.unwrap()));
@@ -156,89 +142,6 @@ fn format_time_hms(time_stamp: OffsetDateTime) -> String {
     format!("{}:{}:{}", time_stamp.to_hms().0, time_stamp.to_hms().1, time_stamp.to_hms().2)
 }
 
-struct Tag {
-    name: String,
-    time_segments: Vec<TimeSegment>,
-    is_active_segment: bool,
-    total_time: f64,
-}
-
-impl Tag {
-    fn new(name: &str) -> Tag {
-        let name = name.to_string();
-        let mut _self = Tag {
-            name,
-            time_segments: Vec::new(),
-            is_active_segment: false,
-            total_time: 0f64,
-        };
-
-        _self
-    }
-
-    fn clear_session(&mut self) {
-        self.time_segments.clear();
-        self.is_active_segment = false;
-        self.total_time = 0f64;
-    }
-
-    fn start_time_segment(&mut self) {
-        if self.is_active_segment == false {
-            let new_segment = TimeSegment::new();
-            self.time_segments.push(new_segment);
-            self.is_active_segment = true;
-        } else {
-            println!("Active segment already exists");
-        }
-    }
-
-    fn end_time_segment(&mut self) {
-        self.is_active_segment = false;
-        self.time_segments
-            .last_mut()
-            .unwrap()
-            .record_end_time();
-    }
-
-    fn calculate_total(&mut self) {
-        let mut running_time = 0f64;
-
-        for time_segment in self.time_segments.iter() {
-            running_time += time_segment.hours_total;
-        }
-
-        self.total_time = running_time;
-    }
-}
-
-struct TimeSegment {
-    start_time: OffsetDateTime,
-    end_time: Option<OffsetDateTime>,
-    hours_total: f64,
-}
-
-impl TimeSegment {
-    fn new() -> TimeSegment {
-        let mut _self = TimeSegment {
-            start_time: OffsetDateTime::now_local().unwrap(),
-            end_time: None,
-            hours_total: 0f64,
-        };
-
-        _self
-    }
-
-    fn record_end_time(&mut self) {
-        self.end_time = OffsetDateTime::now_local().ok();
-        self.calculate_total_hours();
-    }
-
-    fn calculate_total_hours(&mut self) {
-        let time_duration = self.end_time.unwrap() - self.start_time;
-        self.hours_total = time_duration.as_seconds_f64() / 3600f64;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::thread::sleep;
@@ -248,7 +151,7 @@ mod tests {
     #[test]
     fn test_start_segment() {
         let mut test_tag = Tag::new("test");
-        test_tag.start_time_segment();
+        test_tag.start_time_segment(false, 0.0);
 
         assert_eq!(test_tag.time_segments.len(), 1)
     }
@@ -256,8 +159,8 @@ mod tests {
     #[test]
     fn test_end_segment() {
         let mut test_tag = Tag::new("test");
-        test_tag.start_time_segment();
-        test_tag.end_time_segment();
+        test_tag.start_time_segment(false, 0.0);
+        test_tag.end_time_segment(false, 0.0);
 
         assert_eq!(test_tag.is_active_segment, false);
     }
@@ -265,16 +168,17 @@ mod tests {
     #[test]
     fn test_calculate_total_hours() {
         let mut test_tag = Tag::new("test");
-        test_tag.start_time_segment();
+        test_tag.start_time_segment(false, 0.0);
         sleep(Duration::from_secs(5));
-        test_tag.end_time_segment();
+        test_tag.end_time_segment(false, 0.0);
 
         assert_eq!(test_tag.time_segments.last().unwrap().hours_total, 0.001388888888888889);
     }
 
     #[test]
     fn test_time_rounding() {
-        let time_manager = TimeManager::new();
+        let time_manager = TimeSegment::new(false, 0.0);
+        let rounding_scale = 0.25;
         let times = [
             [Time::from_hms(6,25, 0), Time::from_hms(6,30, 0)],
             [Time::from_hms(0,1, 0), Time::from_hms(0,0, 0)],
@@ -288,7 +192,7 @@ mod tests {
 
         for time in times.iter() {
             let unrounded_time = time[0].unwrap().as_hms();
-            let rounded_time = time_manager.round_time((unrounded_time.0, unrounded_time.1));
+            let rounded_time = time_manager.round_time((unrounded_time.0, unrounded_time.1), rounding_scale);
             assert_eq!(Time::from_hms(rounded_time.0, rounded_time.1, 0), time[1]);
         }
     }
