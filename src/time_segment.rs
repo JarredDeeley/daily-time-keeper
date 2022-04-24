@@ -1,3 +1,4 @@
+use std::cmp::min;
 use time::{OffsetDateTime, Time};
 
 pub struct TimeSegment {
@@ -14,13 +15,14 @@ impl TimeSegment {
             hours_total: 0f64,
         };
 
-        let current_time = OffsetDateTime::now_local().ok();
+        let mut current_time = OffsetDateTime::now_local().ok();
 
         if is_rounding_on {
+            let current_time_hms = current_time.unwrap().to_hms();
             let rounded_time = _self.round_time(
-                (current_time.unwrap().hour(), current_time.unwrap().minute()), minute_rounding_scale);
-            let current_time =
-                Time::from_hms(rounded_time.0, rounded_time.1, 0);
+                (current_time_hms.0, current_time_hms.1), minute_rounding_scale);
+            let offset_rounded_time = current_time.unwrap().replace_time(Time::from_hms(rounded_time.0, rounded_time.1, 0).unwrap());
+            current_time = Some(offset_rounded_time);
         }
         _self.start_time = current_time;
 
@@ -28,13 +30,14 @@ impl TimeSegment {
     }
 
     pub fn record_end_time(&mut self, is_rounding_on: bool, minute_rounding_scale: f32) {
-        let current_time = OffsetDateTime::now_local().ok();
+        let mut current_time = OffsetDateTime::now_local().ok();
 
         if is_rounding_on {
+            let current_time_hms = current_time.unwrap().to_hms();
             let rounded_time = self.round_time(
-                (current_time.unwrap().hour(), current_time.unwrap().minute()), minute_rounding_scale);
-            let current_time =
-                Time::from_hms(rounded_time.0, rounded_time.1, 0);
+                (current_time_hms.0, current_time_hms.1), minute_rounding_scale);
+            let offset_rounded_time = current_time.unwrap().replace_time(Time::from_hms(rounded_time.0, rounded_time.1, 0).unwrap());
+            current_time = Some(offset_rounded_time);
         }
 
         self.end_time = current_time;
@@ -55,7 +58,7 @@ impl TimeSegment {
 
         if minutes >= 60 {
             rounded_time.0 += 1;
-            if rounded_time.0 >= 23 {
+            if rounded_time.0 > 23 {
                 rounded_time.0 = 0;
             }
             rounded_time.1 = minutes % 60;

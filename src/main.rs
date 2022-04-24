@@ -71,6 +71,10 @@ impl App for TimeManager {
 
         CentralPanel::default().show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
+
+                let is_rounding_on = self.is_rounding_on;
+                let minute_rounding_scale = self.minute_rounding_scale;
+
                 for (tag_index, tag) in self.tags.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
                         let button_text;
@@ -82,10 +86,10 @@ impl App for TimeManager {
 
                         if ui.add(Button::new(button_text)).clicked() {
                             if tag.is_active_segment {
-                                // tag.end_time_segment(self.is_rounding_on, self.minute_rounding_scale);
+                                tag.end_time_segment(is_rounding_on, minute_rounding_scale);
                                 tag.calculate_total();
                             } else {
-                                // tag.start_time_segment(self.is_rounding_on, self.minute_rounding_scale);
+                                tag.start_time_segment(is_rounding_on, minute_rounding_scale);
                             }
                         }
                         ui.label(&tag.name);
@@ -188,7 +192,9 @@ mod tests {
             [Time::from_hms(0,15, 0), Time::from_hms(0,15, 0)],
             [Time::from_hms(0,16, 0), Time::from_hms(0,15, 0)],
             [Time::from_hms(0,53, 0), Time::from_hms(1,0, 0)],
-            [Time::from_hms(0,59, 0), Time::from_hms(1,0, 0)]];
+            [Time::from_hms(0,59, 0), Time::from_hms(1,0, 0)],
+            [Time::from_hms(22, 58, 0), Time::from_hms(23, 0, 0)],
+            [Time::from_hms(11, 58, 0), Time::from_hms(12, 0, 0)]];
 
         for time in times.iter() {
             let unrounded_time = time[0].unwrap().as_hms();
