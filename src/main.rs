@@ -76,12 +76,8 @@ impl App for TimeManager {
                         },
                     }
                 }
-                // ui.label(format!("Minute Rounding Scale: [ {} ]", self.minute_rounding_scale));
-                if self.is_rounding_on {
-                    ui.label("rounding enabled");
-                } else {
-                    ui.label("rounding disabled");
-                }
+
+                ui.checkbox(&mut self.is_rounding_on, "Minute Rounding");
             });
         });
 
