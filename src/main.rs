@@ -1,6 +1,5 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::cmp::min;
 use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
 use eframe::epi::{App, Frame};
 use eframe::{NativeOptions, run_native};
@@ -22,6 +21,7 @@ struct TimeManager {
     tags: Vec<Tag>,
     tag_name: String,
     minute_rounding_scale: f32,
+    minute_rounding_scale_field: String,
     is_rounding_on: bool,
 }
 
@@ -31,6 +31,7 @@ impl TimeManager {
             tags: Vec::new(),
             tag_name: "".to_owned(),
             minute_rounding_scale: 0.25,
+            minute_rounding_scale_field: "0.25".to_owned(),
             is_rounding_on: true,
         }
     }
@@ -56,16 +57,31 @@ impl App for TimeManager {
                         self.tag_name = "".to_string();
                     }
                 }
+            });
 
+            ui.horizontal(|ui| {
                 // Rounding feature
-                ui.separator();
-                ui.label(format!("Minute Rounding Scale: [ {} ]", self.minute_rounding_scale));
+                ui.label("Minute Rounding Scale: ");
+                let minute_rounding_scale_response = ui.text_edit_singleline(&mut self.minute_rounding_scale_field);
+
+                if minute_rounding_scale_response.lost_focus() {
+                    match self.minute_rounding_scale_field.parse::<f32>() {
+                        Ok(user_rounding_scale) => {
+                            if self.minute_rounding_scale != user_rounding_scale {
+                                self.minute_rounding_scale = user_rounding_scale
+                            }
+                        },
+                        Err(_) => {
+                            self.minute_rounding_scale_field = self.minute_rounding_scale.to_string()
+                        },
+                    }
+                }
+                // ui.label(format!("Minute Rounding Scale: [ {} ]", self.minute_rounding_scale));
                 if self.is_rounding_on {
                     ui.label("rounding enabled");
                 } else {
                     ui.label("rounding disabled");
                 }
-
             });
         });
 

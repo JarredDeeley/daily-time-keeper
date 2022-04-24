@@ -1,4 +1,3 @@
-use std::cmp::min;
 use time::{OffsetDateTime, Time};
 
 pub struct TimeSegment {
