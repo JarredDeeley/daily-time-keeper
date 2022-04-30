@@ -3,6 +3,10 @@ use time::{OffsetDateTime, Time};
 pub struct TimeSegment {
     pub start_time: Option<OffsetDateTime>,
     pub end_time: Option<OffsetDateTime>,
+    pub start_time_hour_field: String,
+    pub start_time_minute_field: String,
+    pub end_time_hour_field: String,
+    pub end_time_minute_field: String,
     pub hours_total: f64,
 }
 
@@ -11,6 +15,10 @@ impl TimeSegment {
         let mut _self = TimeSegment {
             start_time: None,
             end_time: None,
+            start_time_hour_field: "".to_owned(),
+            start_time_minute_field: "".to_owned(),
+            end_time_hour_field: "".to_owned(),
+            end_time_minute_field: "".to_owned(),
             hours_total: 0f64,
         };
 
@@ -24,6 +32,9 @@ impl TimeSegment {
             current_time = Some(offset_rounded_time);
         }
         _self.start_time = current_time;
+        let start_time_formatted = format_time_hour_minute(_self.start_time.unwrap());
+        _self.start_time_hour_field = start_time_formatted.0;
+        _self.start_time_minute_field = start_time_formatted.1;
 
         _self
     }
@@ -40,10 +51,14 @@ impl TimeSegment {
         }
 
         self.end_time = current_time;
+        let end_time_formatted = format_time_hour_minute(self.end_time.unwrap());
+        self.end_time_hour_field = end_time_formatted.0;
+        self.end_time_minute_field = end_time_formatted.1;
+
         self.calculate_total_hours();
     }
 
-    fn calculate_total_hours(&mut self) {
+    pub fn calculate_total_hours(&mut self) {
         let time_duration = self.end_time.unwrap() - self.start_time.unwrap();
         self.hours_total = time_duration.as_seconds_f64() / 3600f64;
     }
@@ -67,4 +82,8 @@ impl TimeSegment {
 
         rounded_time
     }
+}
+
+fn format_time_hour_minute(time_stamp: OffsetDateTime) -> (String, String) {
+    (time_stamp.to_hms().0.to_string(), time_stamp.to_hms().1.to_string())
 }

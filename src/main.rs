@@ -104,8 +104,13 @@ impl App for TimeManager {
                                 tag.start_time_segment(is_rounding_on, minute_rounding_scale);
                             }
                         }
+
+                        ui.separator();
+
                         ui.label(&tag.name);
+                        ui.separator();
                         ui.label(format!("Total Hours: {}", &tag.total_time.to_string()));
+                        ui.separator();
 
                         if ui.add(Button::new("Remove Tag")).clicked() {
                             tags_to_be_deleted.push(tag_index as u16);
@@ -116,15 +121,114 @@ impl App for TimeManager {
                         for segment in tag.time_segments.iter_mut() {
                             ui.horizontal(|ui| {
                                 ui.add_space(40f32);
-                                ui.label(format_time_hms(segment.start_time.unwrap()));
-                                ui.label(" - ");
+                                let start_hour_text = TextEdit::singleline(&mut segment.start_time_hour_field)
+                                    .desired_width(25.);
+                                let start_time_hour_field_response = ui.add(start_hour_text);
+
+                                if start_time_hour_field_response.lost_focus() {
+                                    match segment.start_time_hour_field.parse::<u8>() {
+                                        Ok(user_hour) => {
+                                            if user_hour < 24 {
+                                                let old_time_hms = segment.start_time.unwrap().to_hms();
+                                                let updated_time = segment.start_time.unwrap().replace_time(Time::from_hms(user_hour, old_time_hms.1, old_time_hms.2).unwrap());
+                                                segment.start_time = Some(updated_time);
+                                            } else {
+                                                segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
+                                            }
+                                        },
+                                        Err(_) => {
+                                            segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
+                                        },
+                                    }
+
+                                    if segment.end_time.is_some() {
+                                        segment.calculate_total_hours();
+                                    }
+                                }
+
+                                ui.label(":");
+
+                                let start_minute_text = TextEdit::singleline(&mut segment.start_time_minute_field)
+                                    .desired_width(25.);
+                                let start_time_minute_field_response = ui.add(start_minute_text);
+
+                                if start_time_minute_field_response.lost_focus() {
+                                    match segment.start_time_minute_field.parse::<u8>() {
+                                        Ok(user_minute) => {
+                                            if user_minute < 60 {
+                                                let old_time_hms = segment.start_time.unwrap().to_hms();
+                                                let updated_time = segment.start_time.unwrap().replace_time(Time::from_hms(old_time_hms.0, user_minute, old_time_hms.2).unwrap());
+                                                segment.start_time = Some(updated_time);
+                                            } else {
+                                                segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
+                                            }
+                                        },
+                                        Err(_) => {
+                                            segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
+                                        },
+                                    }
+
+                                    if segment.end_time.is_some() {
+                                        segment.calculate_total_hours();
+                                    }
+                                }
+
+                                ui.add_space(20.);
+                                ui.label("-");
+                                ui.add_space(20.);
+
                                 if segment.end_time.is_some() {
-                                    ui.label(format_time_hms(segment.end_time.unwrap()));
+                                    let end_hour_text = TextEdit::singleline(&mut segment.end_time_hour_field)
+                                        .desired_width(25.);
+                                    let end_time_hour_response = ui.add(end_hour_text);
+                                    if end_time_hour_response.lost_focus() {
+                                        match segment.end_time_hour_field.parse::<u8>() {
+                                            Ok(user_hour) => {
+                                                if user_hour < 24 {
+                                                    let old_time_hms = segment.end_time.unwrap().to_hms();
+                                                    let updated_time = segment.end_time.unwrap().replace_time(Time::from_hms(user_hour, old_time_hms.1, old_time_hms.2).unwrap());
+                                                    segment.end_time = Some(updated_time);
+                                                } else {
+                                                    segment.end_time_hour_field = segment.end_time.unwrap().to_hms().0.to_string();
+                                                }
+                                            },
+                                            Err(_) => {
+                                                segment.end_time_hour_field = segment.end_time.unwrap().to_hms().0.to_string();
+                                            },
+                                        }
+
+                                        segment.calculate_total_hours();
+                                    }
+
+                                    ui.label(":");
+
+                                    let end_minute_text = TextEdit::singleline(&mut segment.end_time_minute_field)
+                                        .desired_width(25.);
+                                    let end_time_minute_response = ui.add(end_minute_text);
+                                    if end_time_minute_response.lost_focus() {
+                                        match segment.end_time_minute_field.parse::<u8>() {
+                                            Ok(user_minute) => {
+                                                if user_minute < 60 {
+                                                    let old_time_hms = segment.end_time.unwrap().to_hms();
+                                                    let updated_time = segment.end_time.unwrap().replace_time(Time::from_hms(old_time_hms.0, user_minute, old_time_hms.2).unwrap());
+                                                    segment.end_time = Some(updated_time);
+                                                } else {
+                                                    segment.end_time_minute_field = segment.end_time.unwrap().to_hms().1.to_string();
+                                                }
+                                            },
+                                            Err(_) => {
+                                                segment.end_time_minute_field = segment.end_time.unwrap().to_hms().1.to_string();
+                                            },
+                                        }
+
+                                        segment.calculate_total_hours();
+                                    }
                                 }
                                 ui.separator();
                                 ui.label(format!("Hours: {:.2}", segment.hours_total))
                             });
                         }
+                        tag.calculate_total();
 
                         ui.separator();
                     });
@@ -152,10 +256,6 @@ impl App for TimeManager {
     fn name(&self) -> &str {
         "Daily Time Keeper"
     }
-}
-
-fn format_time_hms(time_stamp: OffsetDateTime) -> String {
-    format!("{}:{}:{}", time_stamp.to_hms().0, time_stamp.to_hms().1, time_stamp.to_hms().2)
 }
 
 #[cfg(test)]
