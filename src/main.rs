@@ -117,8 +117,9 @@ impl App for TimeManager {
                         }
                     });
 
+                    let mut segments_to_be_deleted: Vec<u16> = Vec::new();
                     ui.vertical(|ui| {
-                        for segment in tag.time_segments.iter_mut() {
+                        for (segment_index, segment) in tag.time_segments.iter_mut().enumerate() {
                             ui.horizontal(|ui| {
                                 ui.add_space(40f32);
                                 let start_hour_text = TextEdit::singleline(&mut segment.start_time_hour_field)
@@ -225,9 +226,24 @@ impl App for TimeManager {
                                     }
                                 }
                                 ui.separator();
-                                ui.label(format!("Hours: {:.2}", segment.hours_total))
+                                ui.label(format!("Hours: {:.2}", segment.hours_total));
+
+                                ui.add_space(20.);
+                                ui.separator();
+                                if ui.add(Button::new("Remove Time Segment")).clicked() {
+                                    segments_to_be_deleted.push(segment_index as u16);
+                                }
                             });
                         }
+
+                        for segment_index in segments_to_be_deleted.drain(..) {
+                            if tag.time_segments.len() - 1 == segment_index as usize {
+                                tag.is_active_segment = false;
+                            }
+
+                            tag.time_segments.remove(segment_index as usize);
+                        }
+
                         tag.calculate_total();
 
                         ui.separator();
