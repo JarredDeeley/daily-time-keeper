@@ -1,9 +1,12 @@
 #![warn(clippy::all, clippy::pedantic)]
-
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;
 use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
 use eframe::epi::{App, Frame};
 use eframe::{NativeOptions, run_native};
-use time::{OffsetDateTime, Time};
+use time::{Time};
+use serde::{Serialize, Deserialize};
 
 mod tag;
 mod time_segment;
@@ -12,11 +15,42 @@ use tag::*;
 use time_segment::*;
 
 pub fn main() {
-    let app = TimeManager::new();
+    let path = Path::new("daily-time-keeper_save_data.toml");
+    let saved_time_manager_data = if path.exists() {
+       Some(load_from_file())
+    } else {
+        None
+    };
+
+    let app = match saved_time_manager_data {
+        None => TimeManager::new(),
+        Some(save_data) => {
+            TimeManager::new_from_serialized(save_data.tag_names, save_data.minute_rounding_scale, save_data.is_rounding_on)
+        },
+    };
+
     let window_options = NativeOptions::default();
     run_native(Box::new(app), window_options);
 }
 
+#[derive(Serialize, Deserialize)]
+struct SerializedTimeManager {
+    tag_names: Vec<String>,
+    minute_rounding_scale: f32,
+    is_rounding_on: bool,
+}
+
+impl SerializedTimeManager {
+    fn new(tag_names: Vec<String>, minute_rounding_scale: f32, is_rounding_on: bool) -> SerializedTimeManager {
+        SerializedTimeManager {
+            tag_names,
+            minute_rounding_scale,
+            is_rounding_on
+        }
+    }
+}
+
+// #[derive(Serialize, Deserialize)]
 struct TimeManager {
     tags: Vec<Tag>,
     tag_name: String,
@@ -35,11 +69,37 @@ impl TimeManager {
             is_rounding_on: true,
         }
     }
+    
+    fn new_from_serialized(tag_names: Vec<String>, minute_rounding_scale: f32, is_rounding_on: bool) ->TimeManager {
+        let mut time_manager = TimeManager {
+            tags: Vec::new(),
+            tag_name: "".to_string(),
+            minute_rounding_scale,
+            minute_rounding_scale_field: minute_rounding_scale.to_string(),
+            is_rounding_on
+        };
+
+        for name in tag_names.iter() {
+            time_manager.tags.push(Tag::new(name));
+        }
+
+        time_manager
+    }
+
+    fn to_serialized(&self) -> SerializedTimeManager {
+        let mut tag_names: Vec<String> = vec![];
+        for tag in self.tags.iter() {
+            tag_names.push(tag.name.clone());
+        }
+
+        SerializedTimeManager::new(tag_names, self.minute_rounding_scale, self.is_rounding_on)
+    }
 }
 
 impl App for TimeManager {
     fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
         let mut tags_to_be_deleted: Vec<u16> = Vec::new();
+        let mut is_changes_made = false;
 
         TopBottomPanel::top("Panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -49,12 +109,16 @@ impl App for TimeManager {
                     if !self.tag_name.is_empty() {
                         self.tags.push(Tag::new(self.tag_name.as_str()));
                         self.tag_name = "".to_string();
+
+                        is_changes_made = true;
                     }
                 }
                 if ui.add(Button::new("Add New Tag")).clicked() {
                     if !self.tag_name.is_empty() {
                         self.tags.push(Tag::new(self.tag_name.as_str()));
                         self.tag_name = "".to_string();
+
+                        is_changes_made = true;
                     }
                 }
             });
@@ -68,11 +132,13 @@ impl App for TimeManager {
                     match self.minute_rounding_scale_field.parse::<f32>() {
                         Ok(user_rounding_scale) => {
                             if self.minute_rounding_scale != user_rounding_scale {
-                                self.minute_rounding_scale = user_rounding_scale
+                                self.minute_rounding_scale = user_rounding_scale;
+
+                                is_changes_made = true;
                             }
                         },
                         Err(_) => {
-                            self.minute_rounding_scale_field = self.minute_rounding_scale.to_string()
+                            self.minute_rounding_scale_field = self.minute_rounding_scale.to_string();
                         },
                     }
                 }
@@ -114,6 +180,8 @@ impl App for TimeManager {
 
                         if ui.add(Button::new("Remove Tag")).clicked() {
                             tags_to_be_deleted.push(tag_index as u16);
+
+                            is_changes_made = true;
                         }
                     });
 
@@ -250,6 +318,8 @@ impl App for TimeManager {
                     });
                 }
 
+                ui.add_space(20.);
+
                 for tag_index in tags_to_be_deleted.drain(..) {
                     self.tags.remove(tag_index as usize);
                 }
@@ -263,15 +333,49 @@ impl App for TimeManager {
                         tag.clear_session();
                     }
                 }
-                ui.separator();
-                ui.label("End session & save");
+                // ui.separator();
+                // ui.label("End session & save");
             });
         });
+
+        // Save state to file
+        if is_changes_made {
+            let serialized_time_manager = self.to_serialized();
+            let time_manager_as_toml = toml::to_string(&serialized_time_manager).unwrap();
+            save_to_file(time_manager_as_toml);
+        }
     }
 
     fn name(&self) -> &str {
         "Daily Time Keeper"
     }
+}
+
+fn save_to_file(save_data: String) {
+    let path = Path::new("daily-time-keeper_save_data.toml");
+    let display = path.display();
+
+    let mut file = File::create(&path).expect(&*format!("Unable to create {}", display));
+
+    match file.write_all(save_data.as_bytes()) {
+        Err(error_message) => println!("Unable to write to {}: {}", display, error_message),
+        Ok(_) => (),
+    }
+}
+
+fn load_from_file() -> SerializedTimeManager {
+    let path = Path::new("daily-time-keeper_save_data.toml");
+    let display = path.display();
+
+    let mut file = File::open(&path).expect(&*format!("Unable to open {}", display));
+
+    let mut serialized_time_manager = String::new();
+    match file.read_to_string(&mut serialized_time_manager) {
+        Err(error_message) => println!("Unable to read {}: {}", display, error_message),
+        Ok(_) => ()
+    };
+
+    toml::from_str(&*serialized_time_manager).unwrap()
 }
 
 #[cfg(test)]
