@@ -24,3 +24,5 @@ directory.
 
 * Time segments will **not** be saved between instances. Closing the tool will wipe all time stamps.
 The `Clear Session` button will wipe all time stamps as well without a prompt.
+
+* Only Windows is supported at the moment
