@@ -2,8 +2,8 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
-use eframe::egui::{CentralPanel, CtxRef, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
-use eframe::epi::{App, Frame};
+use eframe::egui::{CentralPanel, Context, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
+use eframe::{App, Frame};
 use eframe::{NativeOptions, run_native};
 use time::{Time};
 use serde::{Serialize, Deserialize};
@@ -13,6 +13,8 @@ mod time_segment;
 
 use tag::*;
 use time_segment::*;
+
+const APP_NAME : &str = "Daily Time Keeper";
 
 pub fn main() {
     let path = Path::new("daily-time-keeper_save_data.toml");
@@ -30,7 +32,7 @@ pub fn main() {
     };
 
     let window_options = NativeOptions::default();
-    run_native(Box::new(app), window_options);
+    run_native(APP_NAME, window_options, Box::new(|_cc| Box::new(app)));
 }
 
 #[derive(Serialize, Deserialize)]
@@ -97,7 +99,7 @@ impl TimeManager {
 }
 
 impl App for TimeManager {
-    fn update(&mut self, ctx: &CtxRef, frame: &Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let mut tags_to_be_deleted: Vec<u16> = Vec::new();
         let mut is_changes_made = false;
 
@@ -195,6 +197,7 @@ impl App for TimeManager {
                                 let start_time_hour_field_response = ui.add(start_hour_text);
 
                                 if start_time_hour_field_response.lost_focus() {
+                                    println!("start time HOUR lost focus");
                                     match segment.start_time_hour_field.parse::<u8>() {
                                         Ok(user_hour) => {
                                             if user_hour < 24 {
@@ -222,6 +225,7 @@ impl App for TimeManager {
                                 let start_time_minute_field_response = ui.add(start_minute_text);
 
                                 if start_time_minute_field_response.lost_focus() {
+                                    println!("start time MIN lost focus");
                                     match segment.start_time_minute_field.parse::<u8>() {
                                         Ok(user_minute) => {
                                             if user_minute < 60 {
@@ -251,6 +255,7 @@ impl App for TimeManager {
                                         .desired_width(25.);
                                     let end_time_hour_response = ui.add(end_hour_text);
                                     if end_time_hour_response.lost_focus() {
+                                        println!("end time HOUR lost focus");
                                         match segment.end_time_hour_field.parse::<u8>() {
                                             Ok(user_hour) => {
                                                 if user_hour < 24 {
@@ -275,6 +280,7 @@ impl App for TimeManager {
                                         .desired_width(25.);
                                     let end_time_minute_response = ui.add(end_minute_text);
                                     if end_time_minute_response.lost_focus() {
+                                        println!("end time MIN lost focus");
                                         match segment.end_time_minute_field.parse::<u8>() {
                                             Ok(user_minute) => {
                                                 if user_minute < 60 {
@@ -344,10 +350,6 @@ impl App for TimeManager {
             let time_manager_as_toml = toml::to_string(&serialized_time_manager).unwrap();
             save_to_file(time_manager_as_toml);
         }
-    }
-
-    fn name(&self) -> &str {
-        "Daily Time Keeper"
     }
 }
 
