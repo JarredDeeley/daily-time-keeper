@@ -2,7 +2,7 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
-use eframe::egui::{CentralPanel, Context, ScrollArea, Button, TopBottomPanel, TextEdit, Key};
+use eframe::egui::{CentralPanel, Context, ScrollArea, Button, TopBottomPanel, TextEdit, Key, Visuals};
 use eframe::{App, Frame};
 use eframe::{NativeOptions, run_native};
 use time::{Time};
@@ -27,7 +27,7 @@ pub fn main() {
     let app = match saved_time_manager_data {
         None => TimeManager::new(),
         Some(save_data) => {
-            TimeManager::new_from_serialized(save_data.tag_names, save_data.minute_rounding_scale, save_data.is_rounding_on)
+            TimeManager::new_from_serialized(save_data.tag_names, save_data.minute_rounding_scale, save_data.is_rounding_on, save_data.is_dark_mode)
         },
     };
 
@@ -40,14 +40,16 @@ struct SerializedTimeManager {
     tag_names: Vec<String>,
     minute_rounding_scale: f32,
     is_rounding_on: bool,
+    is_dark_mode: bool,
 }
 
 impl SerializedTimeManager {
-    fn new(tag_names: Vec<String>, minute_rounding_scale: f32, is_rounding_on: bool) -> SerializedTimeManager {
+    fn new(tag_names: Vec<String>, minute_rounding_scale: f32, is_rounding_on: bool, is_dark_mode: bool) -> SerializedTimeManager {
         SerializedTimeManager {
             tag_names,
             minute_rounding_scale,
-            is_rounding_on
+            is_rounding_on,
+            is_dark_mode,
         }
     }
 }
@@ -59,6 +61,7 @@ struct TimeManager {
     minute_rounding_scale: f32,
     minute_rounding_scale_field: String,
     is_rounding_on: bool,
+    is_dark_mode: bool,
 }
 
 impl TimeManager {
@@ -69,16 +72,18 @@ impl TimeManager {
             minute_rounding_scale: 0.25,
             minute_rounding_scale_field: "0.25".to_owned(),
             is_rounding_on: true,
+            is_dark_mode: true,
         }
     }
     
-    fn new_from_serialized(tag_names: Vec<String>, minute_rounding_scale: f32, is_rounding_on: bool) ->TimeManager {
+    fn new_from_serialized(tag_names: Vec<String>, minute_rounding_scale: f32, is_rounding_on: bool, is_dark_mode: bool) ->TimeManager {
         let mut time_manager = TimeManager {
             tags: Vec::new(),
             tag_name: "".to_string(),
             minute_rounding_scale,
             minute_rounding_scale_field: minute_rounding_scale.to_string(),
-            is_rounding_on
+            is_rounding_on,
+            is_dark_mode,
         };
 
         for name in tag_names.iter() {
@@ -94,7 +99,7 @@ impl TimeManager {
             tag_names.push(tag.name.clone());
         }
 
-        SerializedTimeManager::new(tag_names, self.minute_rounding_scale, self.is_rounding_on)
+        SerializedTimeManager::new(tag_names, self.minute_rounding_scale, self.is_rounding_on, self.is_dark_mode)
     }
 }
 
@@ -102,6 +107,12 @@ impl App for TimeManager {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let mut tags_to_be_deleted: Vec<u16> = Vec::new();
         let mut is_changes_made = false;
+
+        if self.is_dark_mode {
+            ctx.set_visuals(Visuals::dark());
+        } else {
+            ctx.set_visuals(Visuals::light());
+        }
 
         TopBottomPanel::top("Panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -145,7 +156,16 @@ impl App for TimeManager {
                     }
                 }
 
-                ui.checkbox(&mut self.is_rounding_on, "Minute Rounding");
+                let rounding_enabled_response = ui.checkbox(&mut self.is_rounding_on, "Minute Rounding");
+                if rounding_enabled_response.changed() {
+                    is_changes_made = true;
+                }
+
+                ui.separator();
+                let dark_mode_enabled_response = ui.checkbox(&mut self.is_dark_mode, "Dark Mode");
+                if dark_mode_enabled_response.changed() {
+                    is_changes_made = true;
+                }
             });
         });
 
