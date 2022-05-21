@@ -196,55 +196,11 @@ impl App for TimeManager {
                                     .desired_width(25.);
                                 let start_time_hour_field_response = ui.add(start_hour_text);
 
-                                if start_time_hour_field_response.lost_focus() {
-                                    println!("start time HOUR lost focus");
-                                    match segment.start_time_hour_field.parse::<u8>() {
-                                        Ok(user_hour) => {
-                                            if user_hour < 24 {
-                                                let old_time_hms = segment.start_time.unwrap().to_hms();
-                                                let updated_time = segment.start_time.unwrap().replace_time(Time::from_hms(user_hour, old_time_hms.1, old_time_hms.2).unwrap());
-                                                segment.start_time = Some(updated_time);
-                                            } else {
-                                                segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
-                                            }
-                                        },
-                                        Err(_) => {
-                                            segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
-                                        },
-                                    }
-
-                                    if segment.end_time.is_some() {
-                                        segment.calculate_total_hours();
-                                    }
-                                }
-
                                 ui.label(":");
 
                                 let start_minute_text = TextEdit::singleline(&mut segment.start_time_minute_field)
                                     .desired_width(25.);
                                 let start_time_minute_field_response = ui.add(start_minute_text);
-
-                                if start_time_minute_field_response.lost_focus() {
-                                    println!("start time MIN lost focus");
-                                    match segment.start_time_minute_field.parse::<u8>() {
-                                        Ok(user_minute) => {
-                                            if user_minute < 60 {
-                                                let old_time_hms = segment.start_time.unwrap().to_hms();
-                                                let updated_time = segment.start_time.unwrap().replace_time(Time::from_hms(old_time_hms.0, user_minute, old_time_hms.2).unwrap());
-                                                segment.start_time = Some(updated_time);
-                                            } else {
-                                                segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
-                                            }
-                                        },
-                                        Err(_) => {
-                                            segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
-                                        },
-                                    }
-
-                                    if segment.end_time.is_some() {
-                                        segment.calculate_total_hours();
-                                    }
-                                }
 
                                 ui.add_space(20.);
                                 ui.label("-");
@@ -254,8 +210,14 @@ impl App for TimeManager {
                                     let end_hour_text = TextEdit::singleline(&mut segment.end_time_hour_field)
                                         .desired_width(25.);
                                     let end_time_hour_response = ui.add(end_hour_text);
+
+                                    ui.label(":");
+
+                                    let end_minute_text = TextEdit::singleline(&mut segment.end_time_minute_field)
+                                        .desired_width(25.);
+                                    let end_time_minute_response = ui.add(end_minute_text);
+
                                     if end_time_hour_response.lost_focus() {
-                                        println!("end time HOUR lost focus");
                                         match segment.end_time_hour_field.parse::<u8>() {
                                             Ok(user_hour) => {
                                                 if user_hour < 24 {
@@ -274,13 +236,7 @@ impl App for TimeManager {
                                         segment.calculate_total_hours();
                                     }
 
-                                    ui.label(":");
-
-                                    let end_minute_text = TextEdit::singleline(&mut segment.end_time_minute_field)
-                                        .desired_width(25.);
-                                    let end_time_minute_response = ui.add(end_minute_text);
                                     if end_time_minute_response.lost_focus() {
-                                        println!("end time MIN lost focus");
                                         match segment.end_time_minute_field.parse::<u8>() {
                                             Ok(user_minute) => {
                                                 if user_minute < 60 {
@@ -307,6 +263,49 @@ impl App for TimeManager {
                                 if ui.add(Button::new("Remove Time Segment")).clicked() {
                                     segments_to_be_deleted.push(segment_index as u16);
                                 }
+
+                                if start_time_hour_field_response.lost_focus() {
+                                    match segment.start_time_hour_field.parse::<u8>() {
+                                        Ok(user_hour) => {
+                                            if user_hour < 24 {
+                                                let old_time_hms = segment.start_time.unwrap().to_hms();
+                                                let updated_time = segment.start_time.unwrap().replace_time(Time::from_hms(user_hour, old_time_hms.1, old_time_hms.2).unwrap());
+                                                segment.start_time = Some(updated_time);
+                                            } else {
+                                                segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
+                                            }
+                                        },
+                                        Err(_) => {
+                                            segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
+                                        },
+                                    }
+
+                                    if segment.end_time.is_some() {
+                                        segment.calculate_total_hours();
+                                    }
+                                }
+
+                                if start_time_minute_field_response.lost_focus() {
+                                    match segment.start_time_minute_field.parse::<u8>() {
+                                        Ok(user_minute) => {
+                                            if user_minute < 60 {
+                                                let old_time_hms = segment.start_time.unwrap().to_hms();
+                                                let updated_time = segment.start_time.unwrap().replace_time(Time::from_hms(old_time_hms.0, user_minute, old_time_hms.2).unwrap());
+                                                segment.start_time = Some(updated_time);
+                                            } else {
+                                                segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
+                                            }
+                                        },
+                                        Err(_) => {
+                                            segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
+                                        },
+                                    }
+
+                                    if segment.end_time.is_some() {
+                                        segment.calculate_total_hours();
+                                    }
+                                }
+
                             });
                         }
 
