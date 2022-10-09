@@ -34,7 +34,7 @@ The `Clear Session` button will wipe all time stamps as well without a prompt.
 * [toml](https://crates.io/crates/toml) - TOML encoder and decoder.
 
 ## License
-Licensed under either of
+Dual-licensed under either:
 
 * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
