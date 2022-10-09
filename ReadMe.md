@@ -26,3 +26,17 @@ directory.
 The `Clear Session` button will wipe all time stamps as well without a prompt.
 
 * Only Windows is supported at the moment
+
+## Libraries Used
+* [eframe](https://crates.io/crates/eframe) - The egui framework. GUI library for Rust.
+* [time](https://crates.io/crates/time) - Date and time library for Rust.
+* [serde](https://crates.io/crates/serde) - Generic serialization and deserialization framework.
+* [toml](https://crates.io/crates/toml) - TOML encoder and decoder.
+
+## License
+Licensed under either of
+
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
