@@ -1,9 +1,10 @@
 #![warn(clippy::all, clippy::pedantic)]
+
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use eframe::egui::{CentralPanel, Context, ScrollArea, Button, TopBottomPanel, TextEdit, Key, Visuals};
-use eframe::{App, Frame};
+use eframe::{App, egui, Frame};
 use eframe::{NativeOptions, run_native};
 use time::{Time};
 use serde::{Serialize, Deserialize};
@@ -198,13 +199,16 @@ impl App for TimeManager {
                         ui.label(&tag.name);
                         ui.separator();
                         ui.label(format!("Total Hours: {}", &tag.total_time.to_string()));
-                        ui.separator();
+                        // ui.separator();
 
-                        if ui.add(Button::new("Remove Tag")).clicked() {
-                            tags_to_be_deleted.push(tag_index as u16);
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
+                            if ui.add(Button::new("Remove Tag")).clicked() {
+                                tags_to_be_deleted.push(tag_index as u16);
 
-                            is_changes_made = true;
-                        }
+                                is_changes_made = true;
+                            }
+                        });
+
                     });
 
                     let mut segments_to_be_deleted: Vec<u16> = Vec::new();
@@ -279,10 +283,13 @@ impl App for TimeManager {
                                 ui.label(format!("Hours: {:.2}", segment.hours_total));
 
                                 ui.add_space(20.);
-                                ui.separator();
-                                if ui.add(Button::new("Remove Time Segment")).clicked() {
-                                    segments_to_be_deleted.push(segment_index as u16);
-                                }
+                                // ui.separator();
+
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
+                                    if ui.add(Button::new("Remove Time Segment")).clicked() {
+                                        segments_to_be_deleted.push(segment_index as u16);
+                                    }
+                                });
 
                                 if start_time_hour_field_response.lost_focus() {
                                     match segment.start_time_hour_field.parse::<u8>() {
