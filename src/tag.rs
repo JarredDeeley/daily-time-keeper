@@ -1,4 +1,4 @@
-use crate::time_segment::*;
+use crate::prelude::*;
 
 pub struct Tag {
     pub name: String,
