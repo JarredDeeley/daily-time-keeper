@@ -63,7 +63,7 @@ fn time_manager(
     mut time_segment_creation_writer: EventWriter<WantsToCreateTimeSegment>,
     mut flip_active_state_writer: EventWriter<WantsToFlipActiveState>,
     mut state: ResMut<TimeManagerState>,
-    mut tag_query: Query<(Entity, &Tag)>,
+    tag_query: Query<(Entity, &Tag)>,
     mut time_segment_query: Query<(Entity, &Parent, &mut TimeSegment, Option<&ActiveTimeSegment>)>,
 ) {
     if state.is_dark_mode {
@@ -78,26 +78,18 @@ fn time_manager(
             let new_tag_response = ui.add(egui::TextEdit::singleline(&mut state.tag_name).hint_text("Enter Tag Name"));
             if new_tag_response.lost_focus() && ui.input().key_pressed(egui::Key::Enter) {
                 if !state.tag_name.is_empty() {
-                    // self.tags.push(Tag::new(self.tag_name.as_str()));
-                    // spawn_tag(&mut self.world, self.tag_name.as_str());
                     tag_creation_writer.send(WantsToCreateTag{
                         name: state.tag_name.clone(),
                     });
                     state.tag_name = "".to_string();
-
-                    // is_changes_made = true;
                 }
             }
             if ui.add(egui::Button::new("Add New Tag")).clicked() {
                 if !state.tag_name.is_empty() {
-                    // self.tags.push(Tag::new(self.tag_name.as_str()));
-                    // spawn_tag(&mut self.world, self.tag_name.as_str());
                     tag_creation_writer.send(WantsToCreateTag{
                         name: state.tag_name.clone(),
                     });
                     state.tag_name = "".to_string();
-
-                    // is_changes_made = true;
                 }
             }
         });
@@ -112,8 +104,6 @@ fn time_manager(
                     Ok(user_rounding_scale) => {
                         if state.minute_rounding_scale != user_rounding_scale {
                             state.minute_rounding_scale = user_rounding_scale;
-
-                            // is_changes_made = true;
                         }
                     },
                     Err(_) => {
@@ -122,25 +112,14 @@ fn time_manager(
                 }
             }
 
-            let rounding_enabled_response = ui.checkbox(&mut state.is_rounding_on, "Minute Rounding");
-            // if rounding_enabled_response.changed() {
-            //     is_changes_made = true;
-            // }
-
+            ui.checkbox(&mut state.is_rounding_on, "Minute Rounding");
             ui.separator();
-            let dark_mode_enabled_response = ui.checkbox(&mut state.is_dark_mode, "Dark Mode");
-            // if dark_mode_enabled_response.changed() {
-            //     is_changes_made = true;
-            // }
+            ui.checkbox(&mut state.is_dark_mode, "Dark Mode");
         });
     });
 
     egui::CentralPanel::default().show(egui_context.ctx_mut(), |ui| {
         egui::ScrollArea::vertical().show(ui, |ui| {
-
-            let is_rounding_on = state.is_rounding_on;
-            let minute_rounding_scale = state.minute_rounding_scale;
-
             for (id, tag) in tag_query.iter() {
                 let mut end_time_segment = false;
 
@@ -155,8 +134,6 @@ fn time_manager(
                     if ui.add(egui::Button::new(button_text)).clicked() {
                         if tag.is_active_segment {
                             end_time_segment = true;
-                            // tag.end_time_segment(is_rounding_on, minute_rounding_scale);
-                            // tag.calculate_total();
                         } else {
                             time_segment_creation_writer.send(WantsToCreateTimeSegment {
                                 tag: id,
@@ -177,8 +154,6 @@ fn time_manager(
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
                         if ui.add(egui::Button::new("Remove Tag")).clicked() {
                             // tags_to_be_deleted.push(tag_index as u16);
-
-                            // is_changes_made = true;
                         }
                     });
 
@@ -240,8 +215,6 @@ fn time_manager(
                                                 segment.end_time_hour_field = segment.end_time.unwrap().to_hms().0.to_string();
                                             },
                                         }
-
-                                        // segment.calculate_total_hours();
                                     }
 
                                     if end_time_minute_response.lost_focus() {
@@ -259,16 +232,12 @@ fn time_manager(
                                                 segment.end_time_minute_field = segment.end_time.unwrap().to_hms().1.to_string();
                                             },
                                         }
-
-                                        // segment.calculate_total_hours();
                                     }
                                 }
 
                                 ui.separator();
                                 ui.label(format!("Hours: {:.2}", segment.hours_total));
-
                                 ui.add_space(20.);
-                                // ui.separator();
 
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
                                     if ui.add(egui::Button::new("Remove Time Segment")).clicked() {
@@ -291,10 +260,6 @@ fn time_manager(
                                             segment.start_time_hour_field = segment.start_time.unwrap().to_hms().0.to_string();
                                         },
                                     }
-
-                                    // if segment.end_time.is_some() {
-                                    //     segment.calculate_total_hours();
-                                    // }
                                 }
 
                                 if start_time_minute_field_response.lost_focus() {
@@ -312,10 +277,6 @@ fn time_manager(
                                             segment.start_time_minute_field = segment.start_time.unwrap().to_hms().1.to_string();
                                         },
                                     }
-
-                                    // if segment.end_time.is_some() {
-                                    //     segment.calculate_total_hours();
-                                    // }
                                 }
                             });
                         });
@@ -324,10 +285,6 @@ fn time_manager(
             }
 
             ui.add_space(20.);
-
-            // for tag_index in tags_to_be_deleted.drain(..) {
-            //     self.tags.remove(tag_index as usize);
-            // }
         });
     });
 
