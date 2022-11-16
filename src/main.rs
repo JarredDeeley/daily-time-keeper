@@ -45,6 +45,10 @@ pub fn main() {
     .add_system(end_active_time_segment)
     .add_system(calculate_time_segment)
     .add_system(calculate_tag_time_total)
+    .add_system(remove_components
+        .after(calculate_time_segment)
+        .after(calculate_tag_time_total)
+    )
     .run();
 }
 
@@ -153,7 +157,9 @@ fn time_manager(
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
                         if ui.add(egui::Button::new("Remove Tag")).clicked() {
-                            // tags_to_be_deleted.push(tag_index as u16);
+                            commands
+                                .entity(id)
+                                .insert(RemoveMe);
                         }
                     });
 
@@ -241,7 +247,9 @@ fn time_manager(
 
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
                                     if ui.add(egui::Button::new("Remove Time Segment")).clicked() {
-                                        // segments_to_be_deleted.push(segment_index as u16);
+                                        commands
+                                            .entity(segment_entity)
+                                            .insert(RemoveMe);
                                     }
                                 });
 

@@ -32,3 +32,6 @@ pub struct ActiveTimeSegment;
 
 #[derive(Component)]
 pub struct EndTimeSegment;
+
+#[derive(Component)]
+pub struct RemoveMe;
