@@ -299,9 +299,11 @@ fn time_manager(
     egui::TopBottomPanel::bottom("bottom_panel").show(egui_context.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             if ui.add(egui::Button::new("Clear Session")).clicked() {
-                // for tag in self.tags.iter_mut() {
-                //     tag.clear_session();
-                // }
+                for (segment_entity, _parent, _segment, _active_segment) in time_segment_query.iter_mut() {
+                    commands
+                        .entity(segment_entity)
+                        .insert(RemoveMe);
+                }
             }
             // ui.separator();
             // ui.label("End session & save");

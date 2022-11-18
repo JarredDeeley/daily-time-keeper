@@ -3,9 +3,18 @@ use crate::prelude::*;
 
 pub fn remove_components(
     mut commands: Commands,
-    components_selected_for_removal: Query<(Entity, &RemoveMe)>,
+    components_selected_for_removal: Query<(Entity, &RemoveMe, Option<&ActiveTimeSegment>, Option<&Parent>)>,
+    mut flip_active_state_writer: EventWriter<WantsToFlipActiveState>,
 ) {
-    for (entity, _remove_comp) in components_selected_for_removal.iter() {
+    for (entity, _remove_comp, is_active_segment, parent) in components_selected_for_removal.iter() {
+        if let Some(_active_segment) = is_active_segment {
+            if let Some(parent) = parent {
+                flip_active_state_writer.send(WantsToFlipActiveState {
+                    tag_id: parent.get(),
+                });
+            }
+        }
+
         commands
             .entity(entity)
             .despawn_recursive();
